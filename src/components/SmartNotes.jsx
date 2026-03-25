@@ -1,8 +1,8 @@
 import { useState } from "react";
+import EditForm from "./EditForm";
 export function SmartNotes() {
   const [input, setInput] = useState("");
   const [tasks, setTasks] = useState([]);
-  const uuid = crypto.randomUUID();
 
   function handleInput(event) {
     setInput(event.target.value);
@@ -10,28 +10,40 @@ export function SmartNotes() {
 
   function handleAddToList() {
     const newListItem = {
-      id: uuid,
+      id: crypto.randomUUID(),
       text: input,
       completed: false,
+      isEditing: false,
     };
 
-    setTasks([...tasks, newListItem]);
+    setTasks((prev) => [...prev, newListItem]);
     setInput("");
   }
 
-  function handleDelete(deletedTask) {
-    const updatedItems = tasks.filter((task) => task.id !== deletedTask);
-    setTasks(updatedItems);
+  function handleDelete(id) {
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+  }
+
+  function updateTask(id, updates) {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, ...updates } : task)),
+    );
   }
 
   function handleComplete(id) {
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === id) {
-          return { ...task, completed: !task.completed };
-        }
-        return task;
-      }),
+    const task = tasks.find((t) => t.id === id);
+    updateTask(id, { completed: !task.completed });
+  }
+
+  function handleEdit(id) {
+    updateTask(id, { isEditing: true });
+  }
+
+  function handleSave(id) {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task,
+      ),
     );
   }
 
@@ -47,10 +59,18 @@ export function SmartNotes() {
             style={{ textDecoration: task.completed ? "line-through" : "none" }}
           >
             {task.text}
-            <button onClick={() => handleDelete(task.id)}>Delete</button>
+            {task.isEditing ? (
+              <EditForm task={task} onSave={handleSave} />
+            ) : (
+              <>
+                <span>{task.text}</span>
+                <button onClick={() => handleEdit(task.id)}>Edit</button>
+              </>
+            )}
             <button onClick={() => handleComplete(task.id)}>
               {task.completed ? "Mark Incomplete" : "Mark Complete"}
             </button>
+            <button onClick={() => handleDelete(task.id)}>Delete</button>
           </li>
         ))}
       </div>
